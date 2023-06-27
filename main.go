@@ -8,18 +8,14 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 )
 
 const (
 	LINE_RDWR_SIZE = 4096 * 1024
-	projectApi     = "project-api"
-	wikiApi        = "wiki-api"
-	projectWeb     = "project-web"
-	wikiWeb        = "wiki-web"
 )
-
-var directories = []string{projectApi, wikiApi, projectWeb, wikiWeb}
 
 type translateLine struct {
 	directory string
@@ -27,7 +23,27 @@ type translateLine struct {
 	value     string
 }
 
-func readFile(filePath string, region string) []translateLine {
+func ListDirectories(directory string) ([]string, error) {
+	var directories []string
+
+	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() && path != directory {
+			directories = append(directories, info.Name())
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return directories, nil
+}
+
+func readFile(filePath string, directories []string, region string) []translateLine {
 	res := make([]translateLine, 0)
 	for _, dir := range directories {
 		fileName := filePath + "/" + dir + "/" + region + ".json"
@@ -121,16 +137,22 @@ func saveAsNewFileJson(fileName string, data []translateLine) {
 
 var filePath string
 var region string
+var outPath string
 
 func init() {
-	flag.StringVar(&filePath, "filePath", "/Users/chenweiqiang/go/src/github.com/bangwork/my_tools/citiao", "文件路径")
+	flag.StringVar(&filePath, "filePath", "./citiao", "文件路径")
 	flag.StringVar(&region, "region", "en", "语言类型")
+	flag.StringVar(&outPath, "outPath", "./citiao", "输出路径")
 	flag.Parse()
 }
 
 func main() {
-	data := readFile(filePath, region)
-
+	directories, err := ListDirectories(filePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	data := readFile(filePath, directories, region)
+	fmt.Println("词条总数", len(data))
 	resTagEqualValueNoEqualData := make([]translateLine, 0)
 	resTagNoEqualValueMap := make(map[string]string)
 	resTagValueMap := make(map[string]string)
@@ -162,8 +184,36 @@ func main() {
 		}
 	}
 
-	// 输出到文件-tag相同value相同（只输出一次）或者 tag不同 的有效key值
-	saveAsNewFileJson("/Users/chenweiqiang/go/src/github.com/bangwork/my_tools/output/efficient.json", resTagEqualValueData)
-	// 输出到文件-tag相同但是value不相同
-	saveAsNewFileJson("/Users/chenweiqiang/go/src/github.com/bangwork/my_tools/output/conflict.json", resTagEqualValueNoEqualData)
+	resTagEqualValueEqualDataOne := make([]translateLine, 0)
+	resTagEqualValueMapOnes := make(map[string]int)
+	for i := 0; i < len(data); i++ {
+		resTagEqualValueMapOnes[data[i].tag]++
+	}
+
+	var totle int
+	for tag, count := range resTagEqualValueMapOnes {
+		if count != 1 {
+			_, ok1 := resTagValueMap[tag]
+			if !ok1 {
+				resTagEqualValueEqualDataOne = append(resTagEqualValueEqualDataOne, translateLine{tag: tag, value: strconv.Itoa(count)})
+				totle += count
+			}
+		}
+	}
+
+	// 输出到文件-有效词条文件
+	saveAsNewFileJson(outPath+"/efficient.json", resTagEqualValueData)
+	fmt.Println("有效词条数据条数", len(resTagEqualValueData))
+	// 输出到文件-冲突词条文件
+	saveAsNewFileJson(outPath+"/conflict.json", resTagEqualValueNoEqualData)
+	fmt.Println("冲突词条数据条数", len(resTagEqualValueNoEqualData))
+	// 输出到文件-key相同且value也相同
+	saveAsNewFileJson(outPath+"./keyEqualvalue.json", resTagEqualValueEqualDataOne)
+	fmt.Println("key且value词条数据相同条数", totle-len(resTagEqualValueEqualDataOne))
+
+	if len(resTagEqualValueData)+len(resTagEqualValueNoEqualData)+totle-len(resTagEqualValueEqualDataOne) == len(data) {
+		fmt.Println("条数相同，没有问题～")
+	} else {
+		fmt.Println("条数不同，请检查～")
+	}
 }
