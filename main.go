@@ -142,7 +142,7 @@ var outPath string
 func init() {
 	flag.StringVar(&filePath, "filePath", "./citiao", "文件路径")
 	flag.StringVar(&region, "region", "en", "语言类型")
-	flag.StringVar(&outPath, "outPath", "./citiao", "输出路径")
+	flag.StringVar(&outPath, "outPath", "./", "输出路径")
 	flag.Parse()
 }
 
@@ -208,7 +208,7 @@ func main() {
 	saveAsNewFileJson(outPath+"/conflict.json", resTagEqualValueNoEqualData)
 	fmt.Println("冲突词条数据条数", len(resTagEqualValueNoEqualData))
 	// 输出到文件-key相同且value也相同
-	saveAsNewFileJson(outPath+"./keyEqualvalue.json", resTagEqualValueEqualDataOne)
+	saveAsNewFileJson(outPath+"/keyEqualvalue.json", resTagEqualValueEqualDataOne)
 	fmt.Println("key且value词条数据相同条数", totle-len(resTagEqualValueEqualDataOne))
 
 	if len(resTagEqualValueData)+len(resTagEqualValueNoEqualData)+totle-len(resTagEqualValueEqualDataOne) == len(data) {
