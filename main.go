@@ -57,7 +57,7 @@ func readFile(filePath string, region string) []translateLine {
 			if strLine[len(strLine)-1] == ',' {
 				strLine = strLine[:len(strLine)-1]
 			}
-			splitIdx := strings.Index(strLine, ": ")
+			splitIdx := strings.Index(strLine, ":")
 			if splitIdx == -1 {
 				fmt.Printf("%s split error", strLine)
 				continue
