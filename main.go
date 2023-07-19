@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -95,11 +94,11 @@ func saveAsNewFileJson(fileName string, data []translateLine) {
 	bw.Write([]byte("{\n"))
 	lastIndex := len(data) - 1
 	for i, lineData := range data {
-		suffix := "\",\n"
+		suffix := ",\n"
 		if i == lastIndex {
-			suffix = "\"\n"
+			suffix = "\n"
 		}
-		wl := "  \"" + lineData.tag + "\": \"" + strings.Trim(strconv.Quote(lineData.value), "\"") + suffix
+		wl := "  \"" + lineData.tag + "\": " + strconv.Quote(lineData.value) + suffix
 		enc := mahonia.NewDecoder("UTF-8")
 		resData := enc.ConvertString(string(wl))
 		bw.WriteString(resData)
@@ -115,7 +114,7 @@ var outPath string
 
 func init() {
 	flag.StringVar(&filePath, "filePath", "./citiao", "文件路径")
-	flag.StringVar(&region, "region", "zh", "语言类型")
+	flag.StringVar(&region, "region", "en", "语言类型")
 	flag.StringVar(&outPath, "outPath", "./", "输出路径")
 	flag.Parse()
 }
