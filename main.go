@@ -2,10 +2,11 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/axgle/mahonia"
-	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -47,46 +48,20 @@ func readFile(filePath string, directories []string, region string) []translateL
 	res := make([]translateLine, 0)
 	for _, dir := range directories {
 		fileName := filePath + "/" + dir + "/" + region + ".json"
-		file, err := os.Open(fileName)
+		file, err := ioutil.ReadFile(fileName)
 		if err != nil {
-			log.Fatal("Open file Failed", err)
-			return res
+			panic(err)
 		}
-		defer file.Close()
 
-		br := bufio.NewReaderSize(file, LINE_RDWR_SIZE)
-		lineNum := 0
-		for {
-			byteLine, _, c := br.ReadLine()
-			lineNum++
-			if c == io.EOF {
-				break
-			}
-			strLine := string(byteLine)
-			if len(strLine) <= 0 {
-				continue
-			}
-			//fmt.Println(lineNum, len(strLine), strLine)
-			if strLine[0] == '{' || strLine[0] == '}' {
-				continue
-			}
-			if strLine[len(strLine)-1] == ',' {
-				strLine = strLine[:len(strLine)-1]
-			}
-			splitIdx := strings.Index(strLine, ":")
-			if splitIdx == -1 {
-				fmt.Printf("%s split error", strLine)
-				continue
-			}
-			tag := strings.TrimSpace(strLine[:splitIdx])
-			val := strings.TrimSpace(strLine[splitIdx+2 : len(strLine)-1])
+		var data map[string]string
+		err = json.Unmarshal(file, &data)
+		if err != nil {
+			panic(err)
+		}
+		// fmt.Println(data)
 
-			// "tag"
-			tag = tag[1 : len(tag)-1]
-			// "val",
-			val = val[1:len(val)]
-
-			res = append(res, translateLine{directory: dir, tag: tag, value: val})
+		for data1, data2 := range data {
+			res = append(res, translateLine{directory: dir, tag: data1, value: data2})
 		}
 	}
 	return res
@@ -124,15 +99,14 @@ func saveAsNewFileJson(fileName string, data []translateLine) {
 		if i == lastIndex {
 			suffix = "\"\n"
 		}
-		wl := "  \"" + lineData.tag + "\": \"" + lineData.value + suffix
+		wl := "  \"" + lineData.tag + "\": \"" + strings.Trim(strconv.Quote(lineData.value), "\"") + suffix
 		enc := mahonia.NewDecoder("UTF-8")
 		resData := enc.ConvertString(string(wl))
 		bw.WriteString(resData)
-		//bw.WriteString(wl)
 	}
 	bw.WriteString("}")
+
 	bw.Flush()
-	//fmt.Printf("generated file:%s line:%d\n ", fileName, len(data))
 }
 
 var filePath string
@@ -141,7 +115,7 @@ var outPath string
 
 func init() {
 	flag.StringVar(&filePath, "filePath", "./citiao", "文件路径")
-	flag.StringVar(&region, "region", "en", "语言类型")
+	flag.StringVar(&region, "region", "zh", "语言类型")
 	flag.StringVar(&outPath, "outPath", "./", "输出路径")
 	flag.Parse()
 }

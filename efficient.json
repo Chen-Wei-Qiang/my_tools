@@ -1,0 +1,7 @@
+{
+  "abc": "迁移\n异常用户",
+  "confluence_migration_user_name": "Confluence 用户名",
+  "confluence_migration_user_email": "Confluence 邮箱",
+  "confluence_migration_user_name_ones": "迁移后 ONES 用户名",
+  "confluence_migration_user_email_ones": "迁移后 ONES 邮箱123"
+}
